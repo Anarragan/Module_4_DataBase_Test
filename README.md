@@ -144,7 +144,7 @@ create table public.transacciones (
 
 ## CSV files
 
-[text](Backend/uploads/clientes.csv)
-[text](Backend/uploads/facturaciones.csv)
-[text](Backend/uploads/transacciones.csv)
+[Clientes](Backend/uploads/clientes.csv)
+[Facturaciones](Backend/uploads/facturaciones.csv)
+[Transacciones](Backend/uploads/transacciones.csv)
 
