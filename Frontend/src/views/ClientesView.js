@@ -85,7 +85,7 @@ export default function ClientesView() {
 
           if (action === 'edit') {
             // Fetch single client by ID for editing
-            const res = await api.get(`/clientes/${id}`);
+            const res = await api.put(`/clientes/${id}`);
             showClientForm(res.data);
           } else if (action === 'delete') {
             if (confirm('¿Eliminar este cliente?')) {
@@ -111,7 +111,7 @@ export default function ClientesView() {
       <form id="clienteForm">
         <div class="mb-2">
           <label>Cliente ID</label>
-          <input type="number" name="cliente_id" class="form-control" value="${cliente?.cliente_id || ''}" required>
+          <input type="text" name="cliente_id" class="form-control" value="${cliente?.cliente_id || ''}" required>
         </div>
         <div class="mb-2">
           <label>Nombre</label>
@@ -119,7 +119,7 @@ export default function ClientesView() {
         </div>
         <div class="mb-2">
           <label>Cedula</label>
-          <input type="number" name="cedula" class="form-control" value="${cliente?.cedula || ''}" required>
+          <input type="text" name="cedula" class="form-control" value="${cliente?.cedula || ''}" required>
         </div>
         <div class="mb-2">
           <label>Direccion</label>
@@ -127,7 +127,7 @@ export default function ClientesView() {
         </div>
         <div class="mb-2">
           <label>Telefono</label>
-          <input type="number" name="telefono" class="form-control" value="${cliente?.telefono || ''}" required>
+          <input type="text" name="telefono" class="form-control" value="${cliente?.telefono || ''}" required>
         </div>
         <div class="mb-2">
           <label>Correo</label>
@@ -159,13 +159,13 @@ export default function ClientesView() {
       try {
         // Prepare data with correct types
         const clienteData = {
-          cliente_id: Number(formData.cliente_id),
+          cliente_id: formData.cliente_id,
           nombre: formData.nombre,
-          cedula: Number(formData.cedula),
-          direccion: formData.direccion,
-          telefono: Number(formData.telefono),
+          cedula:formData.cedula,
+          direccion:formData.direccion,
+          telefono:formData.telefono,
           correo: formData.correo,
-          plataforma: formData.plataforma || null
+          plataforma: formData.plataforma
         };
 
         // Call update or create API
@@ -179,7 +179,7 @@ export default function ClientesView() {
         loadClientes(); // Reload clients
 
       } catch (error) {
-        console.error("❌ Error saving appointment:", error.response?.data || error.message);
+        console.error("Error saving appointment:", error.response?.data || error.message);
         alert('Error guardando la cliente. Revisa que los datos sean correctos.');
       }
     });

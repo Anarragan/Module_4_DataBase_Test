@@ -7,12 +7,6 @@ import {
   uploadFacturacionesCSV, 
   uploadTransaccionesCSV
 } from "./upload-csv.js";
-import { createClient } from '@supabase/supabase-js';
-
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();
 const PORT = 3001;
@@ -43,19 +37,22 @@ app.get('/clientes', async (req, res) => {
   }
 });
 
+
 // Create new clients
+
+
 app.post('/clientes-nuevos', async (req, res) => {
-  const { cliente_id, nombre, cedula, direccion, telefono, correo, plataforma } = req.body;
+  const { cliente_id, nombre, direccion, telefono, correo, plataforma, cedula } = req.body;
 
   // Validate required fields
   if (
-    cliente_id ||
-    nombre ||
-    cedula ||
-    direccion ||
-    telefono ||
-    correo ||
-    plataforma
+    !cliente_id ||
+    !nombre ||
+    !direccion ||
+    !telefono ||
+    !correo ||
+    !plataforma ||
+    !cedula
   ) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -63,18 +60,13 @@ app.post('/clientes-nuevos', async (req, res) => {
   try {
     // Check if client exists
     const clienteResult = await pool.query('SELECT 1 FROM clientes WHERE cliente_id = $1', [cliente_id]);
-    if (clienteResult.rowCount === 0) {
-      return res.status(400).json({ error: 'Cliente does not exist' });
-    }
-
-
-    // Insert client
-    const insertResult = await pool.query(
-      `INSERT INTO clientes (nombre, cedula, direccion, telefono, correo, plataforma) 
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [nombre, cedula, direccion, telefono, correo, plataforma]
-    );
-
+    if (clienteResult.rowCount > 0) {
+      return res.status(409).json({error:"El cliente ya existe"})
+  }
+  const insertResult = await pool.query(
+      `INSERT INTO clientes (cliente_id, nombre, direccion, telefono, correo, plataforma, cedula) 
+       VALUES ($1,$2,$3,$4,$5,$6, $7) RETURNING *`,
+      [cliente_id, nombre, direccion, telefono, correo, plataforma, cedula]);
     res.status(201).json(insertResult.rows[0]);
   } catch (err) {
     console.error('Error inserting client:', err);
@@ -82,75 +74,53 @@ app.post('/clientes-nuevos', async (req, res) => {
   }
 });
 
-app.put('/clientes/:id', (req, res) => {
+/*
+Update clients
+*/
+
+app.put('/clientes/:id', async (req, res) => {
   const { id } = req.params;
   const { nombre, cedula, direccion, telefono, correo, plataforma } = req.body;
-
-  pool.query(
-    `UPDATE clientes 
-     SET nombre = $1, cedula = $2, direccion = $3, telefono = $4, correo = $5, plataforma = $6
-     WHERE cita_id = $7
-     RETURNING *`,
-    [nombre, cedula, direccion, telefono, correo, plataforma],
-    (err, result) => {
-      if (err) {
-        console.error('Error updating client:', err);
-        return res.status(500).json({ error: 'Error updating client' });
-      }
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'client not found' });
-      }
-      res.json(result.rows[0]);
+  try {
+    const clienteResult = await pool.query('SELECT 1 FROM clientes WHERE cliente_id = $1', [id]);
+    if (clienteResult.rowCount === 0) {
+      return res.status(404).json({error: 'Client not found or not exists'})
     }
-  );
+    const updateResuts = await pool.query(
+      `UPDATE clientes SET nombre = $1, cedula = $2, direccion = $3, telefono = $4, correo = $5, plataforma = $6 
+      WHERE cliente_id = $7 RETURNING *`,
+      [nombre, cedula, direccion, telefono, correo, plataforma, id]);
+      return res.status(200).json(updateResuts.rows[0]) 
+    }catch (err) {
+      console.error('Error updating client:', err);
+      res.status(500).json({error: err.message || err.toString() });
+    }
 });
 
+/*
+delete client
+*/
 
-// Update client by id
-app.put('/clientes/:id', (req, res) => {
+app.delete('/clientes/:id', async (req, res) => {
   const { id } = req.params;
-  const { paciente_id, medico_id, fecha, hora, motivo, descripcion, ubicacion, estatus } = req.body;
 
-  pool.query(
-    `UPDATE clientes 
-     SET paciente_id = $1, medico_id = $2, fecha = $3, hora = $4, motivo = $5, descripcion = $6, ubicacion = $7, estatus = $8 
-     WHERE cita_id = $9
-     RETURNING *`,
-    [paciente_id, medico_id, fecha, hora, motivo, descripcion, ubicacion, estatus, id],
-    (err, result) => {
-      if (err) {
-        console.error('Error updating client:', err);
-        return res.status(500).json({ error: 'Error updating client' });
-      }
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'client not found' });
-      }
-      res.json(result.rows[0]);
-    }
+  try {
+    const deleteResult = await pool.query(
+    'DELETE FROM clientes WHERE cliente_id = $1',
+    [id]
   );
+
+  if (deleteResult.rowCount === 0) {
+    return res.status(404). json({error: 'Client not found'})
+  }
+  
+  return res.status(200).json({message: 'Client dele successfully'});
+  } catch (err) {
+    console.error('Error deleting client: ', err);
+    return res.status(500).json({error:err.message || err.toString()});
+  }
 });
 
-// Delete client by id
-app.delete('/clientes/:id', (req, res) => {
-  const { id } = req.params;
-  pool.query(
-    'DELETE FROM clientes WHERE cita_id = $1',
-    [id],
-    (err) => {
-      if (err) {
-        console.error('Error deleting client:', err);
-        return res.status(500).json({ error: 'Error deleting client' });
-      }
-      res.json({ message: 'client deleted successfully' });
-    }
-  );
-});
-
-/**
- * -------------------------
- * USER AUTHENTICATION ENDPOINTS
- * -------------------------
- */
 
 // Register new user
 app.post('/register', async (req, res) => {
@@ -207,12 +177,6 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-/**
- * -------------------------
- * CSV UPLOAD ENDPOINTS
- * -------------------------
- */
 
 // Upload clients CSV
 app.post("/upload/clientes", async (req, res) => {
